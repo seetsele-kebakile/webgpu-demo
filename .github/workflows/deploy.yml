@@ -1,10 +1,3 @@
-name: Deploy to GitHub Pages
-
-on:
-  push:
-    branches:
-      - main  # change to 'master' if your repo uses that
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -15,7 +8,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: 20  # 👈 change from 18 to 20
 
       - name: Install dependencies
         run: npm install
