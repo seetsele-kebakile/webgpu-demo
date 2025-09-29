@@ -1,7 +1,8 @@
 import { defineConfig } from 'vite'
 
-// Replace `your-repo-name` with your actual repo name!
 export default defineConfig({
-  base: '/webgpu-demo/',
-
+  base: '/webgpu-demo/',  // Must match your repo name
+  build: {
+    outDir: 'dist',
+  }
 })
