@@ -41,12 +41,12 @@ async function initWebGPU() {
   ]);
 
   const indices = new Uint16Array([
-    0,1,2,2,3,0,
-    4,5,6,6,7,4,
-    0,1,5,5,4,0,
-    2,3,7,7,6,2,
-    1,2,6,6,5,1,
-    0,3,7,7,4,0
+     0,1,2, 0,2,3, // front (CCW)
+  5,4,7, 5,7,6, // back (CCW) 
+  4,0,3, 4,3,7, // left (CCW)
+  1,5,6, 1,6,2, // right (CCW)
+  3,2,6, 3,6,7, // top (CCW)
+  4,5,1, 4,1,0  // bottom (CCW)
   ]);
 
   const vertexBuffer = device.createBuffer({
