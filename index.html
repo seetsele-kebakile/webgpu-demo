@@ -2,13 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>WebGPU Rotating Cube</title>
-  <style>
-    body { margin: 0; overflow: hidden; background: #111; }
-    canvas { width: 100vw; height: 100vh; display: block; }
-  </style>
-</head>
+  <title>WebGPU Voice-Reactive Cube</title>
+  </head>
 <body>
+  <div id="audioOverlay">
+    <h1>WebGPU Demo: Voice Reactive Cube</h1>
+    <p>Click the button below and allow microphone access to begin.</p>
+    <p>Use your voice to control the speed of the spinning cube. The louder you are the faster it will spin.</p>
+    <button id="startButton">Start</button>
+    <p id="errorMessage"></p>
+  </div>
   <canvas id="gpuCanvas"></canvas>
   <script type="module" src="/src/main.js"></script>
 </body>
