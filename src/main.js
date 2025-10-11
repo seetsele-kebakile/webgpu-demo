@@ -1,12 +1,10 @@
 //this is main.js
 import './style.css'
 
-// Import shaders as raw text
-import vertexShader from './shaders/vertex.wgsl?raw'; //
-import fragmentShader from './shaders/fragment.wgsl?raw'; //
-import { mat4 } from 'gl-matrix'; //
+import vertexShader from './shaders/vertex.wgsl?raw';
+import fragmentShader from './shaders/fragment.wgsl?raw';
+import { mat4 } from 'gl-matrix';
 
-// --- UI Elements ---
 const startButton = document.getElementById('startButton');
 const audioOverlay = document.getElementById('audioOverlay');
 const errorMessage = document.getElementById('errorMessage');
@@ -31,11 +29,14 @@ async function setupAudio() {
     analyser.fftSize = 2048;
     analyser.smoothingTimeConstant = 0.5;
     source.connect(analyser);
-    return true; // Success
+    return true;
   } catch (err) {
-    errorMessage.textContent = "Error: Microphone access was denied or is not available. Please check your browser settings and refresh the page.";
+    errorMessage.innerHTML = `
+      <strong>Error:</strong> Microphone access failed.<br>
+      If you're inside an app like LinkedIn, please open this page in your main browser (Chrome, Safari, etc.) to grant permission.
+    `;
     console.error("Error accessing microphone:", err);
-    return false; // Failure
+    return false;
   }
 }
 
@@ -71,15 +72,12 @@ async function initWebGPU() {
   const format = navigator.gpu.getPreferredCanvasFormat();
   context.configure({ device, format });
 
-  // Use `let` for resources that need to be recreated on resize
   let depthTexture, depthView;
 
-  // --- Resize Handler ---
   const handleResize = () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // Destroy old texture and create a new one with the correct size
     if (depthTexture) {
         depthTexture.destroy();
     }
@@ -91,28 +89,59 @@ async function initWebGPU() {
     depthView = depthTexture.createView();
   };
   
-  // Initial setup and add event listener
   handleResize();
   window.addEventListener('resize', handleResize);
 
 
   const timeDomainDataArray = new Float32Array(analyser.fftSize);
 
-
+  // Cube vertices with proper PER-FACE tangents
+  // Format: pos(3) uv(2) normal(3) tangent(3)
   const vertices = new Float32Array([
-    -0.5, -0.5, 0.5, 1, 0, 0,
-    0.5, -0.5, 0.5, 0, 1, 0,
-    0.5, 0.5, 0.5, 0, 0, 1,
-    -0.5, 0.5, 0.5, 1, 1, 0,
-    -0.5, -0.5, -0.5, 0, 1, 1,
-    0.5, -0.5, -0.5, 1, 0, 1,
-    0.5, 0.5, -0.5, 1, 1, 1,
-    -0.5, 0.5, -0.5, 0, 0, 0
+    // FRONT face (+Z): tangent points right (+X)
+    -0.5, -0.5, 0.5, 0, 1,   0, 0, 1,   1, 0, 0,
+     0.5, -0.5, 0.5, 1, 1,   0, 0, 1,   1, 0, 0,
+     0.5,  0.5, 0.5, 1, 0,   0, 0, 1,   1, 0, 0,
+    -0.5,  0.5, 0.5, 0, 0,   0, 0, 1,   1, 0, 0,
+    
+    // BACK face (-Z): tangent points left (-X)
+    -0.5, -0.5,-0.5, 1, 1,   0, 0,-1,  -1, 0, 0,
+     0.5, -0.5,-0.5, 0, 1,   0, 0,-1,  -1, 0, 0,
+     0.5,  0.5,-0.5, 0, 0,   0, 0,-1,  -1, 0, 0,
+    -0.5,  0.5,-0.5, 1, 0,   0, 0,-1,  -1, 0, 0,
+    
+    // TOP face (+Y): tangent points right (+X)
+    -0.5,  0.5,-0.5, 0, 1,   0, 1, 0,   1, 0, 0,
+     0.5,  0.5,-0.5, 1, 1,   0, 1, 0,   1, 0, 0,
+     0.5,  0.5, 0.5, 1, 0,   0, 1, 0,   1, 0, 0,
+    -0.5,  0.5, 0.5, 0, 0,   0, 1, 0,   1, 0, 0,
+    
+    // BOTTOM face (-Y): tangent points right (+X)
+    -0.5, -0.5,-0.5, 0, 0,   0,-1, 0,   1, 0, 0,
+     0.5, -0.5,-0.5, 1, 0,   0,-1, 0,   1, 0, 0,
+     0.5, -0.5, 0.5, 1, 1,   0,-1, 0,   1, 0, 0,
+    -0.5, -0.5, 0.5, 0, 1,   0,-1, 0,   1, 0, 0,
+    
+    // RIGHT face (+X): tangent points back (-Z)
+     0.5, -0.5,-0.5, 1, 1,   1, 0, 0,   0, 0,-1,
+     0.5,  0.5,-0.5, 1, 0,   1, 0, 0,   0, 0,-1,
+     0.5,  0.5, 0.5, 0, 0,   1, 0, 0,   0, 0,-1,
+     0.5, -0.5, 0.5, 0, 1,   1, 0, 0,   0, 0,-1,
+    
+    // LEFT face (-X): tangent points forward (+Z)
+    -0.5, -0.5,-0.5, 0, 1,  -1, 0, 0,   0, 0, 1,
+    -0.5,  0.5,-0.5, 0, 0,  -1, 0, 0,   0, 0, 1,
+    -0.5,  0.5, 0.5, 1, 0,  -1, 0, 0,   0, 0, 1,
+    -0.5, -0.5, 0.5, 1, 1,  -1, 0, 0,   0, 0, 1,
   ]);
 
   const indices = new Uint16Array([
-    0, 1, 2, 0, 2, 3, 5, 4, 7, 5, 7, 6, 4, 0, 3, 4, 3, 7,
-    1, 5, 6, 1, 6, 2, 3, 2, 6, 3, 6, 7, 4, 5, 1, 4, 1, 0
+    0,  1,  2,   0,  2,  3,  // Front
+    4,  7,  6,   4,  6,  5,  // Back
+    8, 11, 10,  8, 10,  9,  // Top
+    12, 15, 14, 12, 14, 13, // Bottom
+    16, 19, 18, 16, 18, 17, // Right
+    20, 23, 22, 20, 22, 21, // Left
   ]);
 
   const vertexBuffer = device.createBuffer({ size: vertices.byteLength, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
@@ -123,16 +152,47 @@ async function initWebGPU() {
 
   const uniformBuffer = device.createBuffer({ size: 64, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
 
+  async function loadImageAndCreateTexture(url) {
+    const img = document.createElement('img');
+    img.src = url;
+    await img.decode();
+    const imageBitmap = await createImageBitmap(img);
+
+    const texture = device.createTexture({
+        size: [imageBitmap.width, imageBitmap.height, 1],
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+    device.queue.copyExternalImageToTexture({ source: imageBitmap }, { texture }, [imageBitmap.width, imageBitmap.height]);
+    return texture;
+  }
+  
+  const [colorTexture, normalTexture, bumpTexture] = await Promise.all([
+    loadImageAndCreateTexture('crate1_diffuse.png'),
+    loadImageAndCreateTexture('crate1_normal.png'),
+    loadImageAndCreateTexture('crate1_bump.png'),
+  ]);
+
+  const sampler = device.createSampler({ magFilter: 'linear', minFilter: 'linear' });
+
   const bindGroupLayout = device.createBindGroupLayout({
     entries: [
-      { binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: "uniform" } }
+      { binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: "uniform" } },
+      { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
+      { binding: 2, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } },
+      { binding: 3, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } },
+      { binding: 4, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } },
     ]
   });
 
   const bindGroup = device.createBindGroup({
     layout: bindGroupLayout,
     entries: [
-      { binding: 0, resource: { buffer: uniformBuffer } }
+      { binding: 0, resource: { buffer: uniformBuffer } },
+      { binding: 1, resource: sampler },
+      { binding: 2, resource: colorTexture.createView() },
+      { binding: 3, resource: normalTexture.createView() },
+      { binding: 4, resource: bumpTexture.createView() },
     ]
   });
 
@@ -142,10 +202,12 @@ async function initWebGPU() {
       module: device.createShaderModule({ code: vertexShader }),
       entryPoint: 'main',
       buffers: [{
-        arrayStride: 24,
+        arrayStride: 11 * 4,
         attributes: [
           { shaderLocation: 0, offset: 0, format: 'float32x3' },
-          { shaderLocation: 1, offset: 12, format: 'float32x3' }
+          { shaderLocation: 1, offset: 3 * 4, format: 'float32x2' },
+          { shaderLocation: 2, offset: 5 * 4, format: 'float32x3' },
+          { shaderLocation: 3, offset: 8 * 4, format: 'float32x3' },
         ]
       }]
     },
@@ -154,14 +216,12 @@ async function initWebGPU() {
       entryPoint: 'main',
       targets: [{ format }]
     },
-    primitive: { topology: 'triangle-list', cullMode: 'back' },
+    primitive: { topology: 'triangle-list', cullMode: 'none' },
     depthStencil: { format: 'depth24plus', depthWriteEnabled: true, depthCompare: 'less' }
   });
 
   let angle = 0;
   function frame() {
-    
-    // --- Audio Analysis for Rotation Speed ---
     analyser.getFloatTimeDomainData(timeDomainDataArray);
     let sumSquares = 0.0;
     for (const amplitude of timeDomainDataArray) {
@@ -171,8 +231,6 @@ async function initWebGPU() {
 
     const rotationSpeed = 0.01 + (amplitude * 5.0);
     angle += rotationSpeed;
-
-    console.log(`Amplitude: ${amplitude.toFixed(4)}, Rotation Speed: ${rotationSpeed.toFixed(4)}`);
     
     const aspect = canvas.width / canvas.height;
     const projection = mat4.create();
@@ -193,7 +251,7 @@ async function initWebGPU() {
     const pass = encoder.beginRenderPass({
       colorAttachments: [{ view, loadOp: 'clear', storeOp: 'store', clearValue: { r: 0.1, g: 0.1, b: 0.1, a: 1 } }],
       depthStencilAttachment: {
-        view: depthView, // Use the (potentially resized) depthView
+        view: depthView,
         depthClearValue: 1.0,
         depthLoadOp: 'clear',
         depthStoreOp: 'store'
